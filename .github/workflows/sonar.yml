@@ -2,6 +2,13 @@ name: sonar
 
 on:
   workflow_call:
+    secrets:
+      # Um workflow reusavel precisa DECLARAR cada secret que aceita. Passar um secret
+      # nao declarado pelo chamador e erro de CARREGAMENTO (startup_failure), nao erro
+      # de execucao. `required: false` porque o repo pode ainda nao ter SONAR_TOKEN, e
+      # nesse caso o job pula em vez de reprovar.
+      SONAR_TOKEN:
+        required: false
 
 permissions:
   contents: read
