@@ -11,7 +11,7 @@
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
-      "description": "Dev tooling patches land on their own: reviewing them one by one buys nothing, and a flood of PRs is how updates start getting ignored.",
+      "description": "Dev tooling updates come grouped and scheduled, but never automerged: automerging a dependency in a single-maintainer repo trades a click for supply-chain risk.",
       "matchDepTypes": [
         "devDependencies"
       ],
@@ -19,9 +19,7 @@
         "patch",
         "minor"
       ],
-      "automerge": true,
-      "automergeType": "pr",
-      "minimumReleaseAge": "3 days"
+      "groupName": "dev tooling"
     },
     {
       "description": "Action digests stay grouped so pin churn is one reviewable PR per week. Pinning by digest is also an OpenSSF Scorecard requirement.",
