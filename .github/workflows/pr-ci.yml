@@ -70,7 +70,11 @@ jobs:
   sonar:
     needs: coverage
     uses: ./.github/workflows/sonar.yml
-    secrets: inherit
+    # Explicit instead of `secrets: inherit`: the called workflow gets exactly the one
+    # secret it needs. `inherit` hands over every secret in the repo, which is how a
+    # compromised or careless reusable workflow exfiltrates the rest of them.
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # --- stage 3: evidence ----------------------------------------------------------
   supply-chain:

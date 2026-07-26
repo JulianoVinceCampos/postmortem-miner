@@ -32,7 +32,12 @@ def read_floor() -> float:
 
 
 def read_coverage(report: Path) -> float:
-    # Parsing our own CI artefact, not untrusted input.
+    # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    # Justification: the only input is coverage.xml produced by our own CI job in the
+    # previous step of the same runner. It is not user-supplied and never crosses a
+    # trust boundary, so the XXE/billion-laughs class the rule guards against does not
+    # apply. Pulling in defusedxml would add a dependency to a repo whose whole point
+    # is having none.
     root = ET.parse(report).getroot()
     rate = root.get("line-rate")
     if rate is None:
