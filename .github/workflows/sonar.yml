@@ -52,6 +52,9 @@ jobs:
 
       - name: SonarCloud scan and quality gate
         if: steps.token.outputs.present == 'true'
+        # Falso positivo: o detector de secret le o SHA de 40 hex do pin da
+        # action como se fosse uma API key. Nao ha segredo aqui.
+        # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key.detected-sonarqube-docs-api-key
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
