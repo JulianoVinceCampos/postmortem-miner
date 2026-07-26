@@ -16,20 +16,27 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - name: Semgrep SAST
-        uses: semgrep/semgrep-action@v1
-        env:
-          # Only rulesets that apply to this codebase. Loading p/kotlin or p/nginx into
-          # a Python repo produces noise, and noise is how a real finding gets ignored.
-          SEMGREP_RULES: >-
-            p/default
-            p/owasp-top-ten
-            p/secrets
-            p/python
-            p/ci
-            p/yaml
+
+      - uses: actions/setup-python@v5
         with:
-          generateSarif: "true"
+          python-version: "3.12"
+
+      - name: Semgrep SAST
+        # From pip, not semgrep/semgrep-action: the action pins a Semgrep version that
+        # the registry no longer supports and assumes an app token for findings upload.
+        # Only rulesets that apply to this codebase - loading p/kotlin or p/nginx into a
+        # Python repo produces noise, and noise is how a real finding gets ignored.
+        run: |
+          python -m pip install --upgrade pip semgrep
+          semgrep scan \
+            --config p/default \
+            --config p/owasp-top-ten \
+            --config p/secrets \
+            --config p/python \
+            --config p/ci \
+            --sarif --output semgrep.sarif \
+            --error
+
       - name: Upload SARIF to the Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()

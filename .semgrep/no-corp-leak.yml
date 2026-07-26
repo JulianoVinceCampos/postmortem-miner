@@ -4,6 +4,11 @@
 # These Semgrep rules run in CI on top of it: same intent, different engine, so a bug in
 # one does not silently disable the check. Defence in depth for the one class of mistake
 # that cannot be reverted - a leak in a public git history.
+#
+# The exclude list below must stay in sync with SELF_EXEMPT in tools/sanitize_scan.py.
+# These three files contain the forbidden patterns by definition - the rules themselves
+# and the allowlist of documented placeholders. Semgrep has no per-line waiver concept,
+# so path exclusion is the only equivalent.
 rules:
   - id: no-aws-instance-id
     pattern-regex: '\bi-0[a-f0-9]{8,17}\b'
@@ -15,6 +20,7 @@ rules:
       exclude:
         - tools/sanitize_scan.py
         - .semgrep/
+        - .gitleaks.toml
 
   - id: no-aws-account-id
     pattern-regex: '\b\d{12}\b'
@@ -26,6 +32,7 @@ rules:
       exclude:
         - tools/sanitize_scan.py
         - .semgrep/
+        - .gitleaks.toml
 
   - id: no-brazilian-tax-id
     pattern-regex: '\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b|\b\d{3}\.\d{3}\.\d{3}-\d{2}\b'
@@ -37,6 +44,7 @@ rules:
       exclude:
         - tools/sanitize_scan.py
         - .semgrep/
+        - .gitleaks.toml
 
   - id: no-private-ip
     pattern-regex: '\b(?:10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b'
@@ -49,3 +57,4 @@ rules:
       exclude:
         - tools/sanitize_scan.py
         - .semgrep/
+        - .gitleaks.toml
