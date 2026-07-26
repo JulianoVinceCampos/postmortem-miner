@@ -3,8 +3,11 @@ name: supply-chain
 on:
   workflow_call:
 
+# Ceiling, not default: must cover what the job requests.
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 jobs:
   sbom-and-provenance:
@@ -26,7 +29,7 @@ jobs:
           python -m build
 
       - name: SBOM (CycloneDX)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.0
         with:
           format: cyclonedx-json
           artifact-name: postmortem-miner-sbom.cyclonedx.json

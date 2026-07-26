@@ -11,21 +11,31 @@ on:
   push:
     branches: [main]
 
+# Union of what the job needs. A narrower ceiling here refuses to start the workflow.
 permissions:
   contents: read
+  security-events: write
+  id-token: write
+  actions: read
 
 jobs:
   analysis:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
       id-token: write
+      # Scorecard reads workflow runs to evaluate the CI-Tests and Token-Permissions
+      # checks; without this it degrades those scores instead of failing loudly.
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: ossf/scorecard-action@v2
+      # `@v2` is not a published tag on this action - only full versions are. Resolved
+      # from the releases API rather than guessed.
+      - uses: ossf/scorecard-action@v2.4.4
         with:
           results_file: results.sarif
           results_format: sarif

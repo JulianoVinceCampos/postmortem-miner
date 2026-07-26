@@ -3,8 +3,10 @@ name: semgrep
 on:
   workflow_call:
 
+# Ceiling, not default: must cover what the job requests.
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   semgrep:

@@ -10,8 +10,18 @@ on:
   push:
     branches: [main]
 
+# The workflow-level block is a CEILING, not a default: a job cannot escalate above it,
+# and the whole workflow refuses to start if one tries. So this is the union of what the
+# jobs below need, and each job then narrows to its own minimum.
+# Learned the hard way: `contents: read` here produced a startup_failure because
+# security-events / id-token / attestations were requested downstream.
 permissions:
   contents: read
+  security-events: write
+  id-token: write
+  attestations: write
+  pull-requests: write
+  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -48,13 +58,14 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
 
   sca:
     needs: build-test
     uses: ./.github/workflows/sca.yml
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
 
   sonar:
     needs: coverage
