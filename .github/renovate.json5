@@ -1,0 +1,45 @@
+// Renovate config em JSON5 para poder carregar comentario — ver ADR e o historico de CI.
+{
+  extends: [
+    "config:recommended",
+    ":semanticCommits",
+    // Reescreve tag de action para digest. Tag e ponteiro mutavel: quem controla o repo
+    // da action pode reapontar `v4` e executar codigo arbitrario neste CI.
+    "helpers:pinGitHubActionDigests",
+  ],
+
+  schedule: ["before 6am on monday"],
+  prConcurrentLimit: 3,
+
+  // Guarda de supply chain: nada entra antes de o pacote existir por 3 dias. Cobre a
+  // janela em que um pacote comprometido recem-publicado seria adotado sem revisao.
+  minimumReleaseAge: "3 days",
+
+  packageRules: [
+    {
+      // Atualizacao de tooling vem agrupada e agendada, nunca com automerge:
+      // automergear dependencia em repo de um mantenedor troca um clique por risco.
+      // nosemgrep: package_managers.renovate.renovate-missing-minimum-release-age.renovate-missing-minimum-release-age
+      description: "Dev tooling grouped and scheduled, never automerged.",
+      matchDepTypes: ["devDependencies"],
+      matchUpdateTypes: ["patch", "minor"],
+      groupName: "dev tooling",
+      minimumReleaseAge: "3 days",
+    },
+    {
+      // Digest de action agrupado: o churn do pin vira um PR revisavel por semana em
+      // vez de um PR por action.
+      // nosemgrep: package_managers.renovate.renovate-missing-minimum-release-age.renovate-missing-minimum-release-age
+      description: "Action digests grouped into one reviewable PR per week.",
+      matchManagers: ["github-actions"],
+      groupName: "github actions",
+      minimumReleaseAge: "3 days",
+    },
+  ],
+
+  // Alerta de vulnerabilidade nunca entra sozinho: exige leitura humana.
+  vulnerabilityAlerts: {
+    labels: ["security"],
+    automerge: false,
+  },
+}
