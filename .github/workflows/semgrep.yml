@@ -1,0 +1,35 @@
+name: semgrep
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep SAST
+        uses: semgrep/semgrep-action@v1
+        env:
+          # Only rulesets that apply to this codebase. Loading p/kotlin or p/nginx into
+          # a Python repo produces noise, and noise is how a real finding gets ignored.
+          SEMGREP_RULES: >-
+            p/default
+            p/owasp-top-ten
+            p/secrets
+            p/python
+            p/ci
+            p/yaml
+        with:
+          generateSarif: "true"
+      - name: Upload SARIF to the Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif

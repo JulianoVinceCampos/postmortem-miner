@@ -1,0 +1,25 @@
+name: codeql
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        # Deliberately without continue-on-error. A greenfield repo can afford to treat
+        # CodeQL as blocking from commit one; retrofitting that onto a large codebase is
+        # what makes teams mark it advisory and then ignore it forever.

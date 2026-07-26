@@ -1,0 +1,41 @@
+name: build-test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 is the declared floor and 3.13 the current release. Testing only the
+        # version on the maintainer's laptop is how a package breaks for everyone else.
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (package has no runtime dependencies)
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Tests
+        run: python -m pytest
+      - name: End-to-end run on the synthetic corpus
+        run: |
+          python tools/gen_corpus.py --out corpus --count 18 --seed 7
+          python -m postmortem_miner.cli mine corpus --out out/report.md --json out/analysis.json
+      - name: Fail if the corpus stopped producing patterns
+        # Guards against a refactor that leaves the tests green while the tool stops
+        # actually finding anything.
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          data = json.loads(pathlib.Path("out/analysis.json").read_text())
+          if data["coverage"] < 0.8 or len(data["patterns"]) < 5:
+              sys.exit(f"regression: {len(data['patterns'])} patterns, coverage {data['coverage']}")
+          print(f"{len(data['patterns'])} patterns, coverage {data['coverage']:.0%}")
+          PY

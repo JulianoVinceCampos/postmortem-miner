@@ -1,0 +1,27 @@
+{
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "description": "Dev tooling patches land on their own: reviewing them one by one buys nothing, and a flood of PRs is how updates start getting ignored.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Action digests stay grouped so pin churn is one reviewable PR per week. Pinning by digest is also an OpenSSF Scorecard requirement.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": false
+  }
+}

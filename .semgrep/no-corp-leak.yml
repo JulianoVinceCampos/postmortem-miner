@@ -1,0 +1,51 @@
+# Second layer of the sanitize gate.
+#
+# tools/sanitize_scan.py is the fast, zero-dependency gate that runs on every commit.
+# These Semgrep rules run in CI on top of it: same intent, different engine, so a bug in
+# one does not silently disable the check. Defence in depth for the one class of mistake
+# that cannot be reverted - a leak in a public git history.
+rules:
+  - id: no-aws-instance-id
+    pattern-regex: '\bi-0[a-f0-9]{8,17}\b'
+    message: >-
+      Real-looking AWS instance id. Use the documented placeholder i-0EXAMPLE.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      exclude:
+        - tools/sanitize_scan.py
+        - .semgrep/
+
+  - id: no-aws-account-id
+    pattern-regex: '\b\d{12}\b'
+    message: >-
+      12-digit value shaped like an AWS account id. Use 000000000000.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      exclude:
+        - tools/sanitize_scan.py
+        - .semgrep/
+
+  - id: no-brazilian-tax-id
+    pattern-regex: '\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b|\b\d{3}\.\d{3}\.\d{3}-\d{2}\b'
+    message: >-
+      Value shaped like a CNPJ/CPF. Generate a synthetic one instead.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      exclude:
+        - tools/sanitize_scan.py
+        - .semgrep/
+
+  - id: no-private-ip
+    pattern-regex: '\b(?:10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])|192\.168)\.\d{1,3}\.\d{1,3}\b'
+    message: >-
+      Private IP address. Use the RFC 5737 documentation ranges
+      (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24).
+    severity: ERROR
+    languages: [generic]
+    paths:
+      exclude:
+        - tools/sanitize_scan.py
+        - .semgrep/

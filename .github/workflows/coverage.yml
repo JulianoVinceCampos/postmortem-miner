@@ -1,0 +1,28 @@
+name: coverage
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Tests with coverage
+        run: python -m pytest --cov --cov-report=xml --cov-report=term-missing
+      - name: Ratchet
+        # A fixed threshold rots: people learn to live just above it. The floor only
+        # ever goes up, which makes coverage a one-way door.
+        run: python3 tools/coverage_ratchet.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7

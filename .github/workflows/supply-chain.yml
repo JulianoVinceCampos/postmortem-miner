@@ -1,0 +1,48 @@
+name: supply-chain
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-and-provenance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          format: cyclonedx-json
+          artifact-name: postmortem-miner-sbom.cyclonedx.json
+          output-file: sbom.cyclonedx.json
+
+      - name: Build provenance attestation
+        # Makes `gh attestation verify` work against the published artefacts: anyone can
+        # confirm which commit and workflow produced them.
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: "dist/*"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-and-sbom
+          path: |
+            dist/*
+            sbom.cyclonedx.json
+          retention-days: 14

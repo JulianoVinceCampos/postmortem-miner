@@ -1,0 +1,85 @@
+# Three stages: cheap and irreversible first, expensive in parallel, evidence last.
+#
+# `sanitize` runs before `lint` on purpose. A style violation is fixed with a commit; a
+# leaked identifier in a public history is permanent. So the check that guards the
+# irreversible mistake is the one that runs first and fails fastest.
+name: pr-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --- stage 1: fail fast, sequential ---------------------------------------------
+  sanitize:
+    uses: ./.github/workflows/sanitize.yml
+
+  lint:
+    needs: sanitize
+    uses: ./.github/workflows/lint.yml
+
+  build-test:
+    needs: lint
+    uses: ./.github/workflows/build-test.yml
+
+  # --- stage 2: parallel ----------------------------------------------------------
+  coverage:
+    needs: build-test
+    uses: ./.github/workflows/coverage.yml
+
+  semgrep:
+    needs: build-test
+    uses: ./.github/workflows/semgrep.yml
+    permissions:
+      contents: read
+      security-events: write
+
+  codeql:
+    needs: build-test
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      security-events: write
+
+  sca:
+    needs: build-test
+    uses: ./.github/workflows/sca.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  sonar:
+    needs: coverage
+    uses: ./.github/workflows/sonar.yml
+    secrets: inherit
+
+  # --- stage 3: evidence ----------------------------------------------------------
+  supply-chain:
+    needs: [coverage, semgrep, codeql, sca]
+    uses: ./.github/workflows/supply-chain.yml
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+  ci-status:
+    # Single check to require in branch protection, so adding a job later does not mean
+    # editing the ruleset.
+    needs: [sanitize, lint, build-test, coverage, semgrep, codeql, sca, sonar, supply-chain]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any upstream job did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "one or more pipeline stages failed"
+          exit 1
+      - run: echo "pipeline green"

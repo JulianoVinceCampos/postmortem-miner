@@ -1,0 +1,35 @@
+name: New signal rule
+description: A failure signature the extractor does not recognise yet
+labels: [signal-rule]
+body:
+  - type: textarea
+    id: phrasing
+    attributes:
+      label: How the signal is written in a postmortem
+      description: >-
+        One or two real-shaped sentences (sanitised). Both languages if you have them -
+        a rule that only speaks one silently drops half of a bilingual corpus.
+      placeholder: |
+        en: The thread pool reached 3100 threads and stopped accepting work.
+        pt: O thread pool alcancou 3100 threads e parou de aceitar trabalho.
+    validations:
+      required: true
+
+  - type: input
+    id: token
+    attributes:
+      label: Proposed canonical token
+      description: "`layer.thing.state`. Reuse an existing layer prefix when one fits."
+      placeholder: saturation.threads
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: What decision this signal changes
+      description: >-
+        A signal earns its place by separating one pattern from another. Which patterns
+        would it help tell apart?
+    validations:
+      required: true

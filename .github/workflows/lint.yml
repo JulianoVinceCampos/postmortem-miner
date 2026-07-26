@@ -1,0 +1,32 @@
+name: lint
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pipx install ruff==0.8.4
+      - name: ruff check
+        run: ruff check --output-format=github .
+      - name: ruff format (check only)
+        run: ruff format --check .
+
+  workflows:
+    # A pipeline that lints the code but not itself is one typo away from silently
+    # skipping a gate.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
+        with:
+          fail-on-error: true
