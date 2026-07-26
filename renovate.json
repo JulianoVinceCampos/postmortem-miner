@@ -19,14 +19,16 @@
         "patch",
         "minor"
       ],
-      "groupName": "dev tooling"
+      "groupName": "dev tooling",
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Action digests stay grouped so pin churn is one reviewable PR per week. Pinning by digest is also an OpenSSF Scorecard requirement.",
       "matchManagers": [
         "github-actions"
       ],
-      "groupName": "github actions"
+      "groupName": "github actions",
+      "minimumReleaseAge": "3 days"
     }
   ],
   "vulnerabilityAlerts": {
