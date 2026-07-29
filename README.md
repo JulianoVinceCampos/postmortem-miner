@@ -6,52 +6,53 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/JulianoVinceCampos/postmortem-miner/badge)](https://scorecard.dev/viewer/?uri=github.com/JulianoVinceCampos/postmortem-miner)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Your postmortems already know what keeps breaking. This reads them back to you as a
-triage decision tree.**
+**Seus postmortems já sabem o que vive quebrando. Esta ferramenta os lê de volta pra você
+como uma árvore de decisão de triagem.**
 
-On the bundled synthetic corpus:
+No corpus sintético que acompanha o projeto:
 
-> **8 patterns explain 90% of 20 incidents, in 17 ms, with a triage depth of 4.**
+> **8 padrões explicam 90% de 20 incidentes, em 17 ms, com uma profundidade de triagem de 4.**
 
-Four questions to classify a live incident against everything the archive has seen before.
-The remaining 10% are two one-off incidents that genuinely do not belong to a pattern, and
-the tool says so instead of inventing one.
+Quatro perguntas para classificar um incidente ao vivo contra tudo o que o arquivo já viu.
+Os 10% restantes são dois incidentes pontuais (one-off) que genuinamente não pertencem a
+nenhum padrão — e a ferramenta diz isso, em vez de inventar um.
 
-## Why
+## Por quê
 
-Teams write good postmortems and then never read them as a set. Each one is a story about
-one night. Read together, twenty of them are a map: the same four or five failure modes,
-each with a distinctive signature, most with a root cause nobody has had time to fix.
+Times escrevem bons postmortems e depois nunca os leem como um conjunto. Cada um é a
+história de uma noite. Lidos juntos, vinte deles viram um mapa: os mesmos quatro ou cinco
+failure modes, cada um com uma assinatura distinta, a maioria com uma root cause que ninguém
+teve tempo de corrigir.
 
-That map is what you actually want at minute three of an incident, and building it by hand
-takes an afternoon nobody has. So: automate the reading, keep the reasoning explainable,
-and let the tool tell you when it does not know.
+Esse mapa é exatamente o que você quer no minuto três de um incidente, e construí-lo à mão
+leva uma tarde que ninguém tem. Então: automatize a leitura, mantenha o raciocínio explicável
+(explainable) e deixe a ferramenta te dizer quando ela não sabe.
 
-## Quickstart
+## Início rápido
 
 ```bash
 git clone https://github.com/JulianoVinceCampos/postmortem-miner
 cd postmortem-miner
-make report        # generates the corpus and reproduces the number above
+make report        # gera o corpus e reproduz o número acima
 ```
 
-No dependencies to install for that: the package uses the standard library only
+Nada a instalar para isso: o pacote usa apenas a biblioteca padrão (standard library)
 ([ADR-0001](docs/adr/ADR-0001-zero-runtime-dependencies.md)). Python 3.11+.
 
-Without `make`:
+Sem `make`:
 
 ```bash
 python3 tools/gen_corpus.py --out corpus --count 18 --seed 7
 PYTHONPATH=src python3 -m postmortem_miner.cli mine corpus --out out/report.md
 ```
 
-Against your own archive:
+Contra o seu próprio arquivo:
 
 ```bash
 python -m postmortem_miner.cli mine path/to/postmortems --out report.md --json analysis.json
 ```
 
-Mid-incident, with the signals you are looking at right now:
+No meio de um incidente, com os sinais que você está olhando agora:
 
 ```bash
 python -m postmortem_miner.cli classify path/to/postmortems \
@@ -59,11 +60,11 @@ python -m postmortem_miner.cli classify path/to/postmortems \
 # -> P2 pool exhausted + pool wait
 ```
 
-`postmortem-miner signals` lists every token it can recognise.
+`postmortem-miner signals` lista todos os tokens que ele consegue reconhecer.
 
-## What the tree looks like
+## Como a árvore se parece
 
-Generated from the synthetic corpus, rendered straight into the report:
+Gerada a partir do corpus sintético, renderizada direto no relatório:
 
 ```mermaid
 flowchart TD
@@ -98,45 +99,49 @@ flowchart TD
     n0 -->|no| n6
 ```
 
-The report also carries a signal-by-pattern support matrix, the evidence snippet behind
-every classification, and a count of how many occurrences of each pattern still have an
-untreated root cause. That last column is usually the uncomfortable one.
+O relatório também traz uma matriz de suporte sinal-por-padrão (signal-by-pattern support
+matrix), o trecho de evidência (evidence snippet) por trás de cada classificação, e uma
+contagem de quantas ocorrências de cada padrão ainda têm uma root cause não tratada. Essa
+última coluna costuma ser a desconfortável.
 
-## How it works
+## Como funciona
 
 ```
 markdown ──▶ Incident ──▶ signal tokens ──▶ patterns ──▶ decision tree ──▶ report
              parser        signals           patterns     decision_tree     report
 ```
 
-**Parsing** is deliberately forgiving. Frontmatter is optional, field names are accepted in
-English and Portuguese, and the date is recovered from frontmatter, filename or body. A
-parser that skips a postmortem over a field name is a parser nobody runs.
+**Parsing** é deliberadamente tolerante. O frontmatter é opcional, nomes de campos são
+aceitos em inglês e português, e a data é recuperada do frontmatter, do nome do arquivo ou do
+corpo. Um parser que descarta um postmortem por causa de um nome de campo é um parser que
+ninguém roda.
 
-**Signal extraction** maps prose to canonical tokens such as `saturation.pool.exhausted`
-through a curated, bilingual regex table: 31 tokens across 8 layers, each carrying the
-snippet of text that produced it. Not embeddings, and
-[ADR-0002](docs/adr/ADR-0002-regex-rules-not-embeddings.md) argues why at length. The short
-version: at 3am you need a conclusion you can argue with, not a similarity score you have
-to trust.
+**Extração de sinais** mapeia o texto corrido para tokens canônicos como
+`saturation.pool.exhausted` através de uma tabela de regex curada e bilíngue: 31 tokens
+distribuídos em 8 camadas, cada um carregando o trecho (snippet) de texto que o produziu. Não
+são embeddings, e o [ADR-0002](docs/adr/ADR-0002-regex-rules-not-embeddings.md) argumenta
+longamente o porquê. A versão curta: às 3 da manhã você precisa de uma conclusão com a qual
+possa discutir, não de um similarity score no qual você tem que confiar.
 
-**Clustering** is single-linkage over Jaccard similarity of signal sets. K is unknown in
-advance, and a chain of related incidents should be allowed to join without forcing a
-centroid that means nothing operationally.
+**Clustering** é single-linkage sobre a similaridade de Jaccard dos conjuntos de sinais. O K
+é desconhecido de antemão, e uma cadeia de incidentes relacionados deve poder se juntar sem
+forçar um centroide que não significa nada operacionalmente.
 
-**Distinctive signals** are the interesting output, not the clusters. A signal present in
-every incident in the corpus is background noise; one that is frequent inside a pattern and
-rare outside it is a triage question. The margin requirement is what makes the difference.
+**Sinais distintivos** são a saída interessante, não os clusters. Um sinal presente em todos
+os incidentes do corpus é ruído de fundo (background noise); um que é frequente dentro de um
+padrão e raro fora dele é uma pergunta de triagem. O requisito de margem (margin) é o que faz
+a diferença.
 
-**The tree** is greedy information gain, depth-capped at 4. Deeper trees score better and
-help nobody: no one walks nine questions while production is down.
+**A árvore** é information gain guloso (greedy), com profundidade limitada a 4. Árvores mais
+profundas pontuam melhor e não ajudam ninguém: ninguém percorre nove perguntas com a produção
+fora do ar.
 
-Everything is deterministic. Same corpus, same bytes out - which is what lets CI defend the
-number in this README instead of trusting that someone updated it.
+Tudo é determinístico. Mesmo corpus, os mesmos bytes na saída — é isso que permite ao CI
+defender o número deste README, em vez de confiar que alguém o atualizou.
 
-## Signal taxonomy
+## Taxonomia de sinais
 
-| Layer | Example tokens |
+| Camada | Tokens de exemplo |
 |---|---|
 | `resource` | `cpu.saturated`, `memory.exhausted`, `gc.pressure`, `disk.pressure` |
 | `saturation` | `pool.exhausted`, `pool.wait`, `threads`, `queue.backlog` |
@@ -147,42 +152,43 @@ number in this README instead of trusting that someone updated it.
 | `workload` | `traffic.spike`, `payload.large`, `batch.window` |
 | `topology` | `single_node`, `all_nodes` |
 
-Adding a rule is one line plus a fixture. See [CONTRIBUTING](CONTRIBUTING.md) - it is the
-most useful contribution you can make.
+Adicionar uma regra é uma linha mais uma fixture. Veja [CONTRIBUTING](CONTRIBUTING.md) — é a
+contribuição mais útil que você pode fazer.
 
-## The corpus is synthetic, on purpose
+## O corpus é sintético, de propósito
 
-The bundled corpus is generated by `tools/gen_corpus.py`: 8 incident families plus two
-one-off incidents that deliberately refuse to cluster, half in English and half in
-Portuguese, deterministic for a given seed.
+O corpus que acompanha o projeto é gerado por `tools/gen_corpus.py`: 8 famílias de incidentes
+mais dois incidentes pontuais (one-off) que deliberadamente se recusam a formar cluster,
+metade em inglês e metade em português, determinístico para um dado seed.
 
-The failure modes are realistic because they are common to any JVM-plus-relational-database
-stack behind a load balancer. Nothing in it comes from a real system, customer or colleague.
-That is enforced, not promised: `tools/sanitize_scan.py` blocks instance ids, account ids,
-tax ids, private addresses and internal hostnames, and it is the **first** job in CI -
-before linting - because a leak in a public git history is the one mistake here that cannot
-be undone. The test suite asserts that the gate passes on this repository with no waiver.
+Os failure modes são realistas porque são comuns a qualquer stack JVM-mais-banco-relacional
+atrás de um load balancer. Nada aqui vem de um sistema, cliente ou colega real. Isso é imposto
+(enforced), não prometido: `tools/sanitize_scan.py` bloqueia instance ids, account ids, tax
+ids, endereços privados e hostnames internos, e é o **primeiro** job no CI — antes do linting
+— porque um vazamento no histórico público do git é o único erro aqui que não dá para desfazer.
+A suíte de testes garante que o gate passa neste repositório sem nenhum waiver.
 
-## What it does not do yet
+## O que ainda não faz
 
-- **Derive candidate SLIs from incident history.** The interesting next step: the archive
-  already implies which indicators would have predicted each pattern. Planned for 0.2.
-- **Feedback loop.** Classifying a live incident should be able to append it to the corpus.
-- **Anything at write scale.** Clustering is O(n²); fine to a few thousand postmortems.
+- **Derivar SLIs candidatas a partir do histórico de incidentes.** O próximo passo
+  interessante: o arquivo já implica quais indicadores teriam previsto cada padrão. Planejado
+  para a 0.2.
+- **Feedback loop.** Classificar um incidente ao vivo deveria permitir anexá-lo ao corpus.
+- **Qualquer coisa em escala de escrita.** O clustering é O(n²); ok até alguns milhares de
+  postmortems.
 
-## Development
+## Desenvolvimento
 
 ```bash
-make install   # dev extras plus pre-commit hooks
-make check     # sanitize + lint + tests, in CI order
-make cov       # coverage plus the ratchet
+make install   # extras de dev mais hooks de pre-commit
+make check     # sanitize + lint + testes, na ordem do CI
+make cov       # coverage mais o ratchet
 ```
 
-The pipeline runs ten layers: pre-commit, sanitize, lint, build and test across three
-Python versions, coverage with a ratchet that only moves up, Semgrep, CodeQL as a blocking
-check, dependency review with OSV, the SonarCloud quality gate, and SBOM plus build
-provenance attestation.
+O pipeline roda dez camadas: pre-commit, sanitize, lint, build e testes em três versões do
+Python, coverage com um ratchet que só sobe, Semgrep, CodeQL como blocking check, dependency
+review com OSV, o quality gate do SonarCloud, e atestação de SBOM mais build provenance.
 
-## License
+## Licença
 
-MIT. See [LICENSE](LICENSE).
+MIT. Veja [LICENSE](LICENSE).
