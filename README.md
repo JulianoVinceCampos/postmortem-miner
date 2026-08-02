@@ -6,6 +6,10 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/JulianoVinceCampos/postmortem-miner/badge)](https://scorecard.dev/viewer/?uri=github.com/JulianoVinceCampos/postmortem-miner)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**[Demo ao vivo](https://postmortem-miner.onrender.com)** — entra com `demo` / `demo`.
+Instância pública sobre o corpus sintético, somente leitura. Pode levar alguns segundos
+para responder se estiver hibernando.
+
 **Seus postmortems já sabem o que vive quebrando. Esta ferramenta os lê de volta pra você
 como uma árvore de decisão de triagem.**
 
@@ -98,9 +102,10 @@ docker compose up --build      # http://127.0.0.1:8000
 A imagem não tem etapa de resolução de dependência, porque não há dependência a resolver.
 Roda como usuário não-root e traz `HEALTHCHECK` batendo em `/api/health`.
 
-Para publicar, o repositório traz um blueprint de Render (`render.yaml`) com auto-deploy no
-push. A porta não está fixada em lugar nenhum: a plataforma injeta `PORT` e o default da
-CLI lê do ambiente.
+A instância pública roda em [postmortem-miner.onrender.com](https://postmortem-miner.onrender.com), criada a partir do
+blueprint de Render (`render.yaml`) que acompanha o repositório, com auto-deploy no push. A
+porta não está fixada em lugar nenhum: a plataforma injeta `PORT` e o default da CLI lê do
+ambiente.
 
 Monte o seu próprio acervo sobre `/app/corpus` para analisar postmortems de verdade — o
 volume é somente leitura, a ferramenta nunca escreve no corpus.
