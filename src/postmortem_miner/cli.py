@@ -10,11 +10,12 @@ Exit codes: 0 success, 1 usage/runtime error. Nothing else, so it composes in CI
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
 
-from postmortem_miner import __version__, decision_tree, report, signals
+from postmortem_miner import __version__, decision_tree, report, signals, webapp
 from postmortem_miner.parser import parse_corpus
 from postmortem_miner.patterns import DEFAULT_THRESHOLD
 
@@ -47,6 +48,19 @@ def _build_parser() -> argparse.ArgumentParser:
     classify.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
 
     sub.add_parser("signals", help="list every signal token the extractor knows")
+
+    serve = sub.add_parser("serve", help="serve the read-only dashboard over HTTP")
+    serve.add_argument("corpus", type=Path)
+    # Loopback by default: a tool that binds every interface the moment you try it is
+    # a bad neighbour. The container overrides it explicitly.
+    serve.add_argument("--host", default="127.0.0.1", help="bind address (default 127.0.0.1)")
+    serve.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("PORT", "8000")),
+        help="bind port (default $PORT or 8000)",
+    )
+    serve.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     return parser
 
 
@@ -102,9 +116,18 @@ def _cmd_signals(_: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    return webapp.serve(args.corpus, host=args.host, port=args.port, threshold=args.threshold)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    handlers = {"mine": _cmd_mine, "classify": _cmd_classify, "signals": _cmd_signals}
+    handlers = {
+        "mine": _cmd_mine,
+        "classify": _cmd_classify,
+        "signals": _cmd_signals,
+        "serve": _cmd_serve,
+    }
     try:
         return handlers[args.command](args)
     except (ValueError, OSError) as error:

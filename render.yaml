@@ -1,0 +1,18 @@
+# Blueprint de deploy. Render le este arquivo e cria o servico sozinho.
+#
+# A porta nao aparece aqui de proposito: a plataforma injeta PORT e o default da CLI
+# le PORT do ambiente. Um numero fixo aqui seria uma segunda fonte de verdade.
+services:
+  - type: web
+    name: postmortem-miner
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PM_USER
+        value: demo
+      # sync: false mantem o valor fora do repositorio - se preenche no painel.
+      # O default do codigo continua sendo demo/demo se nada for definido.
+      - key: PM_PASSWORD
+        sync: false

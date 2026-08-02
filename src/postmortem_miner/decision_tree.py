@@ -151,12 +151,25 @@ def depth(node: Node) -> int:
     return 1 + max((depth(child) for child in children), default=0)
 
 
-def classify(root: Node, tokens: frozenset[str]) -> str:
-    """Walk the tree for a live incident's signal set and return the pattern label."""
+def classify_path(root: Node, tokens: frozenset[str]) -> tuple[str, tuple[tuple[str, bool], ...]]:
+    """Walk the tree and return both the label and the questions asked on the way.
+
+    The path is what makes the answer arguable. During an incident the label alone is a
+    verdict; the label plus "because pool.exhausted was present and lock.contention was
+    not" is something an engineer can push back on.
+    """
     node = root
-    while not node.is_leaf:
-        branch = node.yes if node.token in tokens else node.no
+    path: list[tuple[str, bool]] = []
+    while not node.is_leaf and node.token is not None:
+        answer = node.token in tokens
+        branch = node.yes if answer else node.no
         if branch is None:
             break
+        path.append((node.token, answer))
         node = branch
-    return node.label or "unknown"
+    return node.label or "unknown", tuple(path)
+
+
+def classify(root: Node, tokens: frozenset[str]) -> str:
+    """Walk the tree for a live incident's signal set and return the pattern label."""
+    return classify_path(root, tokens)[0]

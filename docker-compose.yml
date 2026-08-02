@@ -1,0 +1,20 @@
+# Subir o dashboard local:  docker compose up --build   ->  http://127.0.0.1:8000
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Credencial do portao de demonstracao. Troque para qualquer coisa antes de
+      # expor isto fora da sua maquina.
+      PM_USER: demo
+      PM_PASSWORD: demo
+    volumes:
+      # Aponte para o seu acervo para analisar postmortems de verdade. Somente
+      # leitura: a ferramenta nunca escreve no corpus.
+      - ./corpus:/app/corpus:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health',timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 4s
+      retries: 3
