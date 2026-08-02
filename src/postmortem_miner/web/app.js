@@ -53,10 +53,10 @@ const esc = (value) =>
 
 const pct = (value) => `${Math.round(value * 100)}%`;
 const code = (value) => `<code>${esc(value)}</code>`;
-const dash = (value) => (value ? esc(value) : "&ndash;");
+const dash = (value) => (value ? esc(value) : "-");
 
 function tokenList(tokens) {
-  if (!tokens || tokens.length === 0) return "&ndash;";
+  if (!tokens || tokens.length === 0) return "-";
   return tokens.map(code).join(" ");
 }
 
@@ -190,7 +190,7 @@ function renderMatrix() {
       const cells = m.patterns
         .map((p) => {
           const value = (m.support[p.id] || {})[token] || 0;
-          const text = value >= 0.99 ? "<strong>100%</strong>" : value ? pct(value) : "&ndash;";
+          const text = value >= 0.99 ? "<strong>100%</strong>" : value ? pct(value) : "-";
           return `<td class="num">${text}</td>`;
         })
         .join("");

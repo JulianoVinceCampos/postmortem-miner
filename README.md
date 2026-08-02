@@ -6,7 +6,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/JulianoVinceCampos/postmortem-miner/badge)](https://scorecard.dev/viewer/?uri=github.com/JulianoVinceCampos/postmortem-miner)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**[Demo ao vivo](https://postmortem-miner.onrender.com)** — usuário `julianovincedecampos`, senha `postmortem-miner`.
+**[Demo ao vivo](https://postmortem-miner.onrender.com)**. Usuário `julianovincedecampos`, senha `postmortem-miner`.
 Instância pública sobre o corpus sintético, somente leitura. Pode levar alguns segundos
 para responder se estiver hibernando.
 
@@ -19,7 +19,7 @@ No corpus sintético que acompanha o projeto:
 
 Quatro perguntas para classificar um incidente ao vivo contra tudo o que o arquivo já viu.
 Os 10% restantes são dois incidentes pontuais (one-off) que genuinamente não pertencem a
-nenhum padrão — e a ferramenta diz isso, em vez de inventar um.
+nenhum padrão. E a ferramenta diz isso, em vez de inventar um.
 
 ## Por quê
 
@@ -80,13 +80,13 @@ padrões e das camadas de sinal, a árvore de triagem navegável, **classificar 
 (marque os sinais que está vendo e receba o padrão provável junto do caminho percorrido),
 padrões em detalhe com evidência e status da causa raiz, a matriz sinal × padrão, o
 diretório de incidentes com os sinais extraídos e o trecho que os originou, a taxonomia
-completa, e o relatório — que é literalmente a saída de `mine`, não uma segunda fonte de
+completa, e o relatório, que é literalmente a saída de `mine`, não uma segunda fonte de
 verdade.
 
 Credencial do portão de demonstração: usuário `julianovincedecampos`, senha `postmortem-miner`,
 sobrescrevível por `PM_USER` e `PM_PASSWORD`. A verificação acontece no servidor, com cookie assinado por HMAC. É um
 portão de demonstração sobre dado sintético e somente leitura, não um controle de
-segurança — mas um portão validado no navegador não seria portão nenhum.
+segurança, mas um portão validado no navegador não seria portão nenhum.
 
 **Continua sem dependência de runtime.** O servidor é `http.server`, a sessão é `hmac`, o
 frontend não tem framework nem CDN e os gráficos são SVG gerado na hora.
@@ -107,7 +107,7 @@ blueprint de Render (`render.yaml`) que acompanha o repositório, com auto-deplo
 porta não está fixada em lugar nenhum: a plataforma injeta `PORT` e o default da CLI lê do
 ambiente.
 
-Monte o seu próprio acervo sobre `/app/corpus` para analisar postmortems de verdade — o
+Monte o seu próprio acervo sobre `/app/corpus` para analisar postmortems de verdade. O
 volume é somente leitura, a ferramenta nunca escreve no corpus.
 
 ## Como a árvore se parece
@@ -184,7 +184,7 @@ a diferença.
 profundas pontuam melhor e não ajudam ninguém: ninguém percorre nove perguntas com a produção
 fora do ar.
 
-Tudo é determinístico. Mesmo corpus, os mesmos bytes na saída — é isso que permite ao CI
+Tudo é determinístico. Mesmo corpus, os mesmos bytes na saída. É isso que permite ao CI
 defender o número deste README, em vez de confiar que alguém o atualizou.
 
 ## Taxonomia de sinais
@@ -200,7 +200,7 @@ defender o número deste README, em vez de confiar que alguém o atualizou.
 | `workload` | `traffic.spike`, `payload.large`, `batch.window` |
 | `topology` | `single_node`, `all_nodes` |
 
-Adicionar uma regra é uma linha mais uma fixture. Veja [CONTRIBUTING](CONTRIBUTING.md) — é a
+Adicionar uma regra é uma linha mais uma fixture. Veja [CONTRIBUTING](CONTRIBUTING.md): é a
 contribuição mais útil que você pode fazer.
 
 ## O corpus é sintético, de propósito
@@ -212,8 +212,8 @@ metade em inglês e metade em português, determinístico para um dado seed.
 Os failure modes são realistas porque são comuns a qualquer stack JVM-mais-banco-relacional
 atrás de um load balancer. Nada aqui vem de um sistema, cliente ou colega real. Isso é imposto
 (enforced), não prometido: `tools/sanitize_scan.py` bloqueia instance ids, account ids, tax
-ids, endereços privados e hostnames internos, e é o **primeiro** job no CI — antes do linting
-— porque um vazamento no histórico público do git é o único erro aqui que não dá para desfazer.
+ids, endereços privados e hostnames internos, e é o **primeiro** job no CI, antes do linting,
+porque um vazamento no histórico público do git é o único erro aqui que não dá para desfazer.
 A suíte de testes garante que o gate passa neste repositório sem nenhum waiver.
 
 ## O que ainda não faz
