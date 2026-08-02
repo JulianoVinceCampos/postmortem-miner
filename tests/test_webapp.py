@@ -535,9 +535,9 @@ def test_live_answers_two_requests_on_one_socket(live):
         stream.write(summary)
         stream.flush()
         status, body = _read_one_response(stream)
-        assert status.startswith("HTTP/1.1 401"), (
-            f"segunda requisicao na mesma conexao falhou: {status!r}"
-        )
+        assert status.startswith(
+            "HTTP/1.1 401"
+        ), f"segunda requisicao na mesma conexao falhou: {status!r}"
         assert json.loads(body) == {"error": "authentication required"}
 
         stream.close()
@@ -575,9 +575,9 @@ def test_live_body_is_drained_so_the_connection_survives(live):
         stream.write(health)
         stream.flush()
         status, body = _read_one_response(stream)
-        assert status.startswith("HTTP/1.1 200"), (
-            f"a conexao nao sobreviveu ao POST com corpo: {status!r}"
-        )
+        assert status.startswith(
+            "HTTP/1.1 200"
+        ), f"a conexao nao sobreviveu ao POST com corpo: {status!r}"
         assert json.loads(body)["status"] == "ok"
 
         stream.close()
