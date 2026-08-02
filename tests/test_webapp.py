@@ -614,6 +614,66 @@ def test_live_body_is_drained_so_the_connection_survives(live):
         stream.close()
 
 
+@pytest.mark.parametrize("path", ["/api/health", "/styles.css", "/"])
+def test_live_head_answers_like_get_and_writes_no_body(live, path):
+    """HEAD responde como o GET, com Content-Length, e nao escreve corpo.
+
+    Duas coisas de uma vez, e o teste fala socket cru pelos dois motivos.
+
+    Primeiro: HEAD devolvia 501 em toda rota, inclusive /api/health, porque so do_GET e
+    do_POST estavam implementados. Achado sondando a producao; o HEALTHCHECK do container
+    usa GET, entao nenhum gate apontava.
+
+    Segundo, e o motivo do socket cru: uma versao anterior deste teste usava http.client,
+    que por especificacao nao le corpo em resposta a HEAD - entao passava mesmo com o
+    servidor escrevendo o corpo. E corpo espurio depois de HEAD desalinha a conexao com
+    keep-alive, o mesmo modo de falha ja corrigido duas vezes aqui. Enviar um GET na
+    mesma conexao depois do HEAD e o que prova que nada sobrou no fio.
+    """
+    head = (f"HEAD {path} HTTP/1.1" + CRLF + "Host: localhost" + CRLF + CRLF).encode()
+    health = ("GET /api/health HTTP/1.1" + CRLF + "Host: localhost" + CRLF + CRLF).encode()
+
+    with socket.create_connection(("127.0.0.1", live), timeout=5) as sock:
+        stream = sock.makefile("rwb")
+
+        stream.write(head)
+        stream.flush()
+        status = stream.readline().decode("latin-1").strip()
+        length = 0
+        while True:
+            line = stream.readline().decode("latin-1").strip()
+            if not line:
+                break
+            name, _, value = line.partition(":")
+            if name.strip().lower() == "content-length":
+                length = int(value.strip())
+
+        assert status.startswith("HTTP/1.1 200"), status
+        assert length > 0, "HEAD deve anunciar o tamanho que o GET enviaria"
+
+        # Se o servidor tivesse escrito o corpo do HEAD, esta resposta seria lida a
+        # partir daqueles bytes e o status nao casaria.
+        stream.write(health)
+        stream.flush()
+        status, body = _read_one_response(stream)
+        assert status.startswith(
+            "HTTP/1.1 200"
+        ), f"corpo espurio depois do HEAD desalinhou a conexao: {status!r}"
+        assert json.loads(body)["status"] == "ok"
+
+        stream.close()
+
+
+def test_live_static_asks_for_revalidation(live):
+    """O nome do arquivo nao tem hash, entao o cache precisa revalidar a cada deploy."""
+    conn = HTTPConnection("127.0.0.1", live, timeout=5)
+    conn.request("GET", "/styles.css")
+    response = conn.getresponse()
+    response.read()
+    conn.close()
+    assert response.getheader("Cache-Control") == "no-cache"
+
+
 def test_log_message_tolerates_a_single_argument(state, capsys):
     handler = webapp.Handler.__new__(webapp.Handler)
     handler.command = "GET"

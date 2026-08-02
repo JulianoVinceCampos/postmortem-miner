@@ -446,6 +446,10 @@ class Handler(BaseHTTPRequestHandler):
     # que e o que HTTP/1.1 exige para manter a conexao viva com seguranca.
     protocol_version = "HTTP/1.1"
 
+    # HEAD reusa o caminho do GET e suprime o corpo. A flag e por conexao, e o handler
+    # e instanciado por conexao, entao nao ha estado compartilhado entre clientes.
+    _body_suppressed = False
+
     state: AppState
 
     def log_message(self, _format: str, *args: Any) -> None:
@@ -469,7 +473,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send_session_cookie(session)
         self._send_hardening_headers()
         self.end_headers()
-        self.wfile.write(body)
+        self._write_body(body)
+
+    def _write_body(self, body: bytes) -> None:
+        """Escreve o corpo, a menos que a requisicao seja HEAD."""
+        if not self._body_suppressed:
+            self.wfile.write(body)
 
     def _send_session_cookie(self, session: str) -> None:
         if session:
@@ -521,9 +530,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        # O nome do arquivo nao carrega hash de conteudo, entao um cache intermediario
+        # que guardasse styles.css serviria a folha antiga depois de um deploy. no-cache
+        # obriga revalidar; nao proibe cachear, so proibe servir sem checar.
+        self.send_header("Cache-Control", "no-cache")
         self._send_hardening_headers()
         self.end_headers()
-        self.wfile.write(body)
+        self._write_body(body)
+
+    def do_HEAD(self) -> None:
+        # Sem isto o BaseHTTPRequestHandler devolve 501 para HEAD, e monitoracao externa,
+        # verificador de link e alguns proxies sondam com HEAD em vez de GET. O
+        # HEALTHCHECK do container usa GET, entao a lacuna passou batida.
+        self._body_suppressed = True
+        try:
+            self.do_GET()
+        finally:
+            self._body_suppressed = False
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
