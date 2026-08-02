@@ -6,6 +6,9 @@
     // Reescreve tag de action para digest. Tag e ponteiro mutavel: quem controla o repo
     // da action pode reapontar `v4` e executar codigo arbitrario neste CI.
     "helpers:pinGitHubActionDigests",
+    // Mesmo raciocinio para imagem de container. Sem isto, pinar o digest da imagem
+    // base na mao congelaria a imagem: ninguem estaria encarregado de avanca-la.
+    "docker:pinDigests",
   ],
 
   schedule: ["before 6am on monday"],
@@ -33,6 +36,15 @@
       description: "Action digests grouped into one reviewable PR per week.",
       matchManagers: ["github-actions"],
       groupName: "github actions",
+      minimumReleaseAge: "3 days",
+    },
+    {
+      // Digest da imagem base tem a mesma cadencia do resto: um PR revisavel por
+      // semana, sem automerge, porque trocar a base do runtime merece leitura.
+      // nosemgrep: package_managers.renovate.renovate-missing-minimum-release-age.renovate-missing-minimum-release-age
+      description: "Base image digest in one reviewable PR, never automerged.",
+      matchManagers: ["dockerfile"],
+      groupName: "docker base image",
       minimumReleaseAge: "3 days",
     },
   ],
