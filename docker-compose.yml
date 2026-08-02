@@ -7,8 +7,8 @@ services:
     environment:
       # Credencial do portao de demonstracao. Troque para qualquer coisa antes de
       # expor isto fora da sua maquina.
-      PM_USER: demo
-      PM_PASSWORD: demo
+      PM_USER: julianovincedecampos
+      PM_PASSWORD: postmortem-miner
     volumes:
       # Aponte para o seu acervo para analisar postmortems de verdade. Somente
       # leitura: a ferramenta nunca escreve no corpus.

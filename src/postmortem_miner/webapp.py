@@ -49,8 +49,8 @@ WEB_ROOT = Path(__file__).resolve().parent / "web"
 SESSION_COOKIE = "pm_session"
 SESSION_TTL_SECONDS = 28_800  # eight hours: one working day, then re-auth
 _SESSION_PARTS = 3  # user.expiry.signature
-DEFAULT_USER = "demo"
-DEFAULT_PASSWORD = "demo"
+DEFAULT_USER = "julianovincedecampos"
+DEFAULT_PASSWORD = "postmortem-miner"
 MAX_BODY_BYTES = 64 * 1024
 
 # Endpoints reachable without a session. Health has to answer for the container

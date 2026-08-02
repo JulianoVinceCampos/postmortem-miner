@@ -29,7 +29,7 @@ dev = [
   "pytest>=8.3",
   "pytest-cov>=6.0",
   "hypothesis>=6.112",
-  "ruff>=0.8",
+  "ruff==0.8.4",  # igual ao pin do job de lint; ver .github/workflows/lint.yml
 ]
 
 [project.scripts]

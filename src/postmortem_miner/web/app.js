@@ -7,7 +7,7 @@
  * dependencia e o frontend ter cinco.
  *
  * O estado e um objeto simples. Cada view renderiza a partir dele; nada de binding
- * implicito, porque com sete telas isso e mais facil de depurar do que de abstrair.
+ * implicito, porque com oito telas isso e mais facil de depurar do que de abstrair.
  */
 
 const state = {
@@ -33,12 +33,13 @@ async function api(path, options = {}) {
     ...options,
   });
   if (response.status === 401) {
-    showGate();
-    throw new Error("unauthenticated");
+    const error = new Error("unauthenticated");
+    error.unauthenticated = true;
+    throw error;
   }
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.error || `HTTP ${response.status}`);
+    throw new Error(detail.error || `HTTP ${response.status} em ${path}`);
   }
   return response.json();
 }
@@ -61,12 +62,12 @@ function tokenList(tokens) {
 
 /* ------------------------------------------------------------ graficos --- */
 
-/* Barras horizontais em SVG. Escala pelo maior valor; rotulo a esquerda,
-   numero no fim da barra. Suficiente para as duas distribuicoes que importam. */
+/* Barras horizontais em SVG. Escala pelo maior valor; rotulo a esquerda, numero no fim
+   da barra. Suficiente para as duas distribuicoes que importam, e sem dependencia. */
 function barChart(rows, { color = "bar" } = {}) {
   if (rows.length === 0) return '<p class="empty">Nada para mostrar.</p>';
   const rowH = 26;
-  const labelW = 132;
+  const labelW = 138;
   const width = 460;
   const barMax = width - labelW - 46;
   const max = Math.max(...rows.map((r) => r.value)) || 1;
@@ -79,11 +80,12 @@ function barChart(rows, { color = "bar" } = {}) {
       return `
         <text class="chart-label" x="0" y="${y + 14}">${esc(row.label)}</text>
         <rect class="${color}" x="${labelW}" y="${y + 4}" width="${w}" height="14" rx="3" />
-        <text class="chart-value" x="${labelW + w + 6}" y="${y + 15}">${esc(row.display ?? row.value)}</text>`;
+        <text class="chart-value" x="${labelW + w + 6}" y="${y + 15}">${esc(row.value)}</text>`;
     })
     .join("");
 
-  return `<svg viewBox="0 0 ${width} ${height}" role="img">${bars}</svg>`;
+  return `<svg viewBox="0 0 ${width} ${height}" role="img"
+    aria-label="Grafico de barras com ${rows.length} series">${bars}</svg>`;
 }
 
 /* ---------------------------------------------------------------- views --- */
@@ -109,11 +111,10 @@ function renderOverview() {
     state.patterns.map((p) => ({ label: p.id, value: p.size }))
   );
 
-  const byKind = state.signals.map((group) => ({
-    label: group.kind,
-    value: group.tokens.length,
-  }));
-  $("chart-kinds").innerHTML = barChart(byKind, { color: "bar-alt" });
+  $("chart-kinds").innerHTML = barChart(
+    state.signals.map((group) => ({ label: group.kind, value: group.tokens.length })),
+    { color: "bar-alt" }
+  );
 
   const orphans = state.incidents.filter((i) => !i.pattern);
   $("unexplained").innerHTML = orphans.length
@@ -126,24 +127,28 @@ function renderOverview() {
     : '<p class="empty">Todo incidente caiu em algum padrão.</p>';
 }
 
+/* Um no da arvore: a caixa, e quando for pergunta, os dois ramos abaixo. */
+function treeNode(node) {
+  if (!node) {
+    return '<span class="node node-leaf unknown">ramo ausente</span>';
+  }
+  if (node.kind === "leaf") {
+    const label = node.label || "unknown";
+    const tie =
+      node.tie && node.tie.length ? ` · empate com ${node.tie.map(esc).join(", ")}` : "";
+    const unknown = label === "unknown" ? " unknown" : "";
+    return `<span class="node node-leaf${unknown}">${esc(label)}
+      <span class="node-count">· n=${node.support}${tie}</span></span>`;
+  }
+  return `<span class="node node-q">${esc(node.token)} ?</span>
+    <ul class="branch">
+      <li><span class="edge edge-yes">sim</span>${treeNode(node.yes)}</li>
+      <li><span class="edge edge-no">não</span>${treeNode(node.no)}</li>
+    </ul>`;
+}
+
 function renderTree() {
-  const node = (n) => {
-    if (n === null) return "";
-    if (n.kind === "leaf") {
-      const tie = n.tie && n.tie.length ? ` (empate: ${n.tie.map(esc).join(", ")})` : "";
-      return `<li><span class="node node-leaf">${esc(n.label)} &middot; n=${n.support}${tie}</span></li>`;
-    }
-    return `<li>
-        <span class="node node-q">${esc(n.token)} ?</span>
-        <ul>
-          <li><span class="edge">sim</span></li>
-        </ul>
-        <ul>${node(n.yes)}</ul>
-        <ul><li><span class="edge">não</span></li></ul>
-        <ul>${node(n.no)}</ul>
-      </li>`;
-  };
-  $("tree").innerHTML = `<ul>${node(state.tree)}</ul>`;
+  $("tree").innerHTML = `<ul><li>${treeNode(state.tree)}</li></ul>`;
 }
 
 function renderPatterns() {
@@ -152,10 +157,10 @@ function renderPatterns() {
       const open = p.open_root_cause.length;
       const badge = open
         ? `<span class="pill pill-open">causa raiz aberta em ${open}/${p.size}</span>`
-        : `<span class="pill pill-ok">causa raiz endereçada</span>`;
+        : '<span class="pill pill-ok">causa raiz endereçada</span>';
       const evidence = p.sample_evidence
-        ? `<p class="panel-sub"><strong>Amostra de evidência</strong> (${code(p.incident_ids[0])}):
-           ${esc(p.sample_evidence)}</p>`
+        ? `<p class="panel-sub"><strong>Amostra de evidência</strong>
+           (${code(p.incident_ids[0])}): ${esc(p.sample_evidence)}</p>`
         : "";
       return `<article class="panel">
         <h3>${code(p.id)} ${esc(p.name)} ${badge}</h3>
@@ -167,7 +172,7 @@ function renderPatterns() {
           </tbody>
         </table>
         ${evidence}
-        ${open ? `<p class="panel-sub">Recorrência é esperada até a causa raiz mudar.</p>` : ""}
+        ${open ? '<p class="panel-sub">Recorrência é esperada até a causa raiz mudar.</p>' : ""}
       </article>`;
     })
     .join("");
@@ -206,6 +211,12 @@ function renderIncidents() {
           .map((v) => String(v ?? "").toLowerCase())
           .some((v) => v.includes(term))
   );
+
+  if (rows.length === 0) {
+    $("incidents").innerHTML = '<p class="empty">Nenhum incidente casa com o filtro.</p>';
+    return;
+  }
+
   $("incidents").innerHTML = `<table>
     <thead><tr>
       <th>id</th><th>título</th><th>serviço</th><th>severidade</th>
@@ -232,6 +243,12 @@ function renderIncidents() {
     .forEach((row) => row.addEventListener("click", () => openIncident(row.dataset.id)));
 }
 
+function markSelectedRow(id) {
+  $("incidents")
+    .querySelectorAll("tr.clickable")
+    .forEach((row) => row.setAttribute("aria-selected", String(row.dataset.id === id)));
+}
+
 async function openIncident(id) {
   const detail = await api(`/api/incidents/${encodeURIComponent(id)}`);
   $("incident-detail-title").innerHTML = `${code(detail.id)} ${esc(detail.title)}`;
@@ -242,8 +259,13 @@ async function openIncident(id) {
       <tr><th>gatilho</th><td>${dash(detail.trigger)}</td></tr>
       <tr><th>mitigação</th><td>${dash(detail.mitigation)}</td></tr>
       <tr><th>padrão</th><td>${detail.pattern ? esc(detail.pattern) : "fora de padrão"}</td></tr>
+      <tr><th>causa raiz</th><td>${
+        detail.root_cause_addressed
+          ? '<span class="pill pill-ok">endereçada</span>'
+          : '<span class="pill pill-open">aberta</span>'
+      }</td></tr>
     </tbody></table>
-    <h3 style="margin-top:16px">Sinais extraídos</h3>
+    <h3 style="margin-top:18px">Sinais extraídos</h3>
     <p class="panel-sub">Cada linha guarda o trecho original que gerou o token.</p>
     <table><thead><tr><th>token</th><th>camada</th><th>evidência</th></tr></thead>
       <tbody>${detail.signals
@@ -255,18 +277,33 @@ async function openIncident(id) {
         )
         .join("")}</tbody></table>`;
   $("incident-detail-panel").hidden = false;
+  markSelectedRow(id);
   $("incident-detail-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeIncidentDetail() {
+  $("incident-detail-panel").hidden = true;
+  markSelectedRow(null);
 }
 
 function renderSignals() {
   $("signals").innerHTML = state.signals
     .map(
       (group) => `<article class="panel">
-        <h3><span class="pill pill-kind">${esc(group.kind)}</span> ${group.tokens.length} sinais</h3>
+        <h3><span class="pill pill-kind">${esc(group.kind)}</span>
+          ${group.tokens.length} sinais</h3>
         <p class="panel-sub">${group.tokens.map(code).join(" ")}</p>
       </article>`
     )
     .join("");
+}
+
+function updateSelectedCount() {
+  const total = state.selected.size;
+  $("selected-count").textContent =
+    total === 0
+      ? "Nenhum sinal marcado."
+      : `${total} ${total === 1 ? "sinal marcado" : "sinais marcados"}.`;
 }
 
 function renderPicker() {
@@ -292,40 +329,51 @@ function renderPicker() {
       box.addEventListener("change", () => {
         if (box.checked) state.selected.add(box.value);
         else state.selected.delete(box.value);
+        updateSelectedCount();
       })
     );
+
+  updateSelectedCount();
 }
 
 async function runClassify() {
+  const result = $("classify-result");
   if (state.selected.size === 0) {
-    $("classify-result").innerHTML =
-      '<p class="empty">Selecione ao menos um sinal para classificar.</p>';
+    result.innerHTML = '<p class="empty">Selecione ao menos um sinal para classificar.</p>';
     return;
   }
-  const result = await api("/api/classify", {
-    method: "POST",
-    body: JSON.stringify({ signals: [...state.selected] }),
-  });
-  const steps = result.path.length
-    ? result.path
-        .map(
-          (step) => `<div class="path-step">
-            <span class="${step.answer ? "path-yes" : "path-no"}">${step.answer ? "sim" : "não"}</span>
-            ${code(step.token)}
-          </div>`
-        )
-        .join("")
-    : '<p class="empty">A árvore respondeu na raiz, sem perguntas.</p>';
-  const unknown = result.unknown.length
-    ? `<p class="panel-sub">Ignorados por não existirem na taxonomia: ${result.unknown
-        .map(code)
-        .join(" ")}</p>`
-    : "";
-  $("classify-result").innerHTML = `
-    <div class="verdict">${esc(result.label)}</div>
-    <p class="panel-sub">${result.observed.length} sinais observados</p>
-    <h3 style="margin-top:14px;font-size:13px">Caminho percorrido</h3>
-    ${steps}${unknown}`;
+  try {
+    const answer = await api("/api/classify", {
+      method: "POST",
+      body: JSON.stringify({ signals: [...state.selected] }),
+    });
+    const steps = answer.path.length
+      ? answer.path
+          .map(
+            (step) => `<div class="path-step">
+              <span class="edge ${step.answer ? "edge-yes" : "edge-no"}">${
+                step.answer ? "sim" : "não"
+              }</span>${code(step.token)}
+            </div>`
+          )
+          .join("")
+      : '<p class="empty">A árvore respondeu na raiz, sem perguntas.</p>';
+    const unknown = answer.unknown.length
+      ? `<p class="panel-sub">Ignorados por não existirem na taxonomia:
+         ${answer.unknown.map(code).join(" ")}</p>`
+      : "";
+    result.innerHTML = `
+      <div class="verdict">${esc(answer.label)}</div>
+      <p class="panel-sub">${answer.observed.length} sinais observados</p>
+      <h3 style="margin-top:14px;font-size:13px">Caminho percorrido</h3>
+      ${steps}${unknown}`;
+  } catch (failure) {
+    if (failure.unauthenticated) {
+      showGate();
+      return;
+    }
+    result.innerHTML = `<p class="gate-error">${esc(failure.message)}</p>`;
+  }
 }
 
 /* --------------------------------------------------------------- router --- */
@@ -344,15 +392,24 @@ const RENDER = {
 };
 
 function show(view) {
+  if (!RENDER[view]) view = "overview";
   state.view = view;
+
   document.querySelectorAll(".view").forEach((section) => {
     section.hidden = section.id !== `view-${view}`;
   });
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.setAttribute("aria-current", String(button.dataset.view === view));
   });
+
+  // O detalhe de um incidente nao faz sentido fora da sua view.
+  if (view !== "incidents") closeIncidentDetail();
+
   RENDER[view]();
-  if (location.hash !== `#${view}`) location.hash = view;
+  window.scrollTo({ top: 0, behavior: "instant" });
+  if (location.hash !== `#${view}`) {
+    history.replaceState(null, "", `#${view}`);
+  }
 }
 
 /* ----------------------------------------------------------------- boot --- */
@@ -378,14 +435,13 @@ async function loadAll() {
 }
 
 async function enterApp(user) {
+  await loadAll();
   state.user = user;
   $("gate").hidden = true;
   $("app").hidden = false;
   $("who").textContent = user;
-  await loadAll();
   $("brand-version").textContent = `v${state.summary.version}`;
-  const initial = location.hash.replace("#", "");
-  show(RENDER[initial] ? initial : "overview");
+  show(location.hash.replace("#", "") || "overview");
 }
 
 function wire() {
@@ -399,19 +455,35 @@ function wire() {
     const error = $("login-error");
     error.hidden = true;
     button.disabled = true;
+
     try {
-      const session = await fetch("/api/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: $("user").value, password: $("password").value }),
       });
-      if (!session.ok) {
+
+      if (response.status === 401) {
         error.textContent = "Credencial inválida.";
         error.hidden = false;
         return;
       }
-      const body = await session.json();
-      await enterApp(body.user);
+      if (!response.ok) {
+        error.textContent = `O servidor respondeu ${response.status}.`;
+        error.hidden = false;
+        return;
+      }
+
+      const body = await response.json();
+      // Separa os dois modos de falha de proposito. Autenticar e carregar os dados sao
+      // etapas distintas, e tratar as duas como "login falhou" foi o que tornou um bug de
+      // renderizacao indistinguivel de credencial errada.
+      try {
+        await enterApp(body.user);
+      } catch (loadFailure) {
+        error.textContent = `Autenticado, mas os dados não carregaram: ${loadFailure.message}`;
+        error.hidden = false;
+      }
     } catch {
       error.textContent = "Não foi possível falar com o servidor.";
       error.hidden = false;
@@ -426,7 +498,12 @@ function wire() {
     showGate();
   });
 
-  $("incident-filter").addEventListener("input", renderIncidents);
+  $("incident-filter").addEventListener("input", () => {
+    closeIncidentDetail();
+    renderIncidents();
+  });
+  $("incident-detail-close").addEventListener("click", closeIncidentDetail);
+
   $("classify-run").addEventListener("click", runClassify);
   $("classify-clear").addEventListener("click", () => {
     state.selected.clear();
@@ -449,7 +526,7 @@ function wire() {
       return;
     }
   } catch {
-    /* cai no portão */
+    /* sessao ausente ou dados indisponiveis: cai no portao */
   }
   showGate();
 })();
