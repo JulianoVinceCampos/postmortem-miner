@@ -438,6 +438,14 @@ class Handler(BaseHTTPRequestHandler):
     """Thin shell. Every decision it makes lives in a function above."""
 
     server_version = f"postmortem-miner/{__version__}"
+
+    # HTTP/1.1 explicito. O default de BaseHTTPRequestHandler e HTTP/1.0, que fecha a
+    # conexao a cada resposta; atras de um proxy que reusa a conexao upstream isso
+    # dessincroniza o par requisicao/resposta e o proxy passa a servir a resposta
+    # anterior para a requisicao seguinte. Toda resposta aqui carrega Content-Length,
+    # que e o que HTTP/1.1 exige para manter a conexao viva com seguranca.
+    protocol_version = "HTTP/1.1"
+
     state: AppState
 
     def log_message(self, _format: str, *args: Any) -> None:
@@ -480,7 +488,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
-        if length <= 0 or length > MAX_BODY_BYTES:
+        if length <= 0:
+            return {}
+        if length > MAX_BODY_BYTES:
+            # Recusar sem ler deixaria o corpo na conexao, e com keep-alive o proximo
+            # request seria parseado a partir desses bytes. Fecha em vez de
+            # dessincronizar: e a mesma falha que o HTTP/1.0 causava, pelo outro lado.
+            self.close_connection = True
             return {}
         try:
             parsed = json.loads(self.rfile.read(length).decode("utf-8"))
@@ -513,12 +527,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        # Drena o corpo antes de decidir a rota. Responder um 404 sem ler o corpo deixa
+        # bytes na conexao, e com keep-alive eles viram a proxima linha de request.
+        body = self._read_body()
         if not path.startswith("/api/"):
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
-        status, payload, session = handle_post(
-            self.state, path, self._read_body(), self._current_user()
-        )
+        status, payload, session = handle_post(self.state, path, body, self._current_user())
         self._send_json(status, payload, session)
 
 
