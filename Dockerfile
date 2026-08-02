@@ -5,8 +5,8 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PM_USER=demo \
-    PM_PASSWORD=demo
+    PM_USER=julianovincedecampos \
+    PM_PASSWORD=postmortem-miner
 
 WORKDIR /app
 

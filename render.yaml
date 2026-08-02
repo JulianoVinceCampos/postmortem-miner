@@ -7,11 +7,12 @@ services:
     name: postmortem-miner
     runtime: docker
     plan: free
+    region: oregon
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
       - key: PM_USER
-        value: demo
+        value: julianovincedecampos
       # sync: false mantem o valor fora do repositorio - se preenche no painel.
       # O default do codigo continua sendo demo/demo se nada for definido.
       - key: PM_PASSWORD

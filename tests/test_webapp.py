@@ -69,6 +69,37 @@ def test_credentials_from_real_environment(monkeypatch):
     assert creds.password == webapp.DEFAULT_PASSWORD
 
 
+def test_documented_default_credentials():
+    """O README e a tela de login publicam esta credencial.
+
+    Travar aqui e de proposito: mudar o default sem mudar a documentacao deixa o demo
+    publico inacessivel para quem chega pelo README, e isso nao aparece em nenhum outro
+    teste porque o resto da suite injeta a credencial explicitamente.
+    """
+    assert webapp.DEFAULT_USER == "julianovincedecampos"
+    assert webapp.DEFAULT_PASSWORD == "postmortem-miner"
+
+
+def test_stylesheet_lets_the_hidden_attribute_win():
+    """Regressao de producao, e a que mais custou a achar.
+
+    `.gate` e `.app` definem `display: grid`, e uma regra de autor com display vence o
+    `[hidden] { display: none }` da folha de estilo do navegador. Sem a regra explicita,
+    `element.hidden = true` nao esconde nada: o login autenticava, gravava o cookie, e a
+    tela de login continuava por cima do dashboard - indistinguivel de "nao logou".
+    """
+    css = (webapp.WEB_ROOT / "styles.css").read_text(encoding="utf-8")
+    assert "[hidden]" in css
+    assert "display: none !important" in css
+
+
+def test_the_login_screen_shows_the_default_credentials():
+    """A tela publica a credencial; se divergir do default, ninguem entra."""
+    html = (webapp.WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    assert webapp.DEFAULT_USER in html
+    assert webapp.DEFAULT_PASSWORD in html
+
+
 # --- auth -----------------------------------------------------------------------
 
 

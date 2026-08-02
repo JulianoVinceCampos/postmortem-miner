@@ -44,7 +44,7 @@ jobs:
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
             -H 'Content-Type: application/json' \
-            -d '{"user":"demo","password":"demo"}' \
+            -d '{"user":"julianovincedecampos","password":"postmortem-miner"}' \
             http://127.0.0.1:8000/api/login)
           test "$code" = "200"
 

@@ -6,7 +6,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/JulianoVinceCampos/postmortem-miner/badge)](https://scorecard.dev/viewer/?uri=github.com/JulianoVinceCampos/postmortem-miner)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**[Demo ao vivo](https://postmortem-miner.onrender.com)** — entra com `demo` / `demo`.
+**[Demo ao vivo](https://postmortem-miner.onrender.com)** — usuário `julianovincedecampos`, senha `postmortem-miner`.
 Instância pública sobre o corpus sintético, somente leitura. Pode levar alguns segundos
 para responder se estiver hibernando.
 
@@ -83,8 +83,8 @@ diretório de incidentes com os sinais extraídos e o trecho que os originou, a 
 completa, e o relatório — que é literalmente a saída de `mine`, não uma segunda fonte de
 verdade.
 
-Credencial do portão de demonstração: `demo` / `demo`, sobrescrevível por `PM_USER` e
-`PM_PASSWORD`. A verificação acontece no servidor, com cookie assinado por HMAC. É um
+Credencial do portão de demonstração: usuário `julianovincedecampos`, senha `postmortem-miner`,
+sobrescrevível por `PM_USER` e `PM_PASSWORD`. A verificação acontece no servidor, com cookie assinado por HMAC. É um
 portão de demonstração sobre dado sintético e somente leitura, não um controle de
 segurança — mas um portão validado no navegador não seria portão nenhum.
 

@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<!-- Portão de demonstração. A verificação real acontece no servidor: este overlay
+<!-- Portão de demonstração. A verificação real acontece no servidor: este formulário
      apenas coleta a credencial e reage ao 401. -->
 <div id="gate" class="gate" hidden>
   <form class="gate-card" id="login-form" autocomplete="off">
@@ -17,16 +17,22 @@
       Transforma um acervo de postmortems numa árvore de triagem e em SLIs candidatos.
       Determinístico e explicável: sem embeddings, sem chamada de modelo.
     </p>
+
     <label for="user">Usuário</label>
-    <input id="user" name="user" value="demo" required />
+    <input id="user" name="user" value="julianovincedecampos" autocapitalize="none"
+           spellcheck="false" required />
+
     <label for="password">Senha</label>
-    <input id="password" name="password" type="password" value="demo" required />
+    <input id="password" name="password" type="password" value="postmortem-miner" required />
+
     <button type="submit" id="login-button">Entrar</button>
+
     <p class="gate-hint">
-      Credencial de demonstração: <code>demo</code> / <code>demo</code>. Os dados são um
-      corpus sintético e o acesso é somente leitura.
+      Acesso de demonstração: usuário <code>julianovincedecampos</code>, senha
+      <code>postmortem-miner</code>. Os dados são um corpus sintético e o acesso é somente
+      leitura.
     </p>
-    <p class="gate-error" id="login-error" hidden></p>
+    <p class="gate-error" id="login-error" role="alert" hidden></p>
   </form>
 </div>
 
@@ -34,32 +40,32 @@
 
   <aside class="sidebar">
     <div class="brand">
-      <span class="brand-mark">pm</span>
+      <span class="brand-mark" aria-hidden="true">pm</span>
       <div>
         <strong>postmortem-miner</strong>
         <small id="brand-version">&nbsp;</small>
       </div>
     </div>
 
-    <nav>
+    <nav aria-label="Seções do dashboard">
       <p class="nav-group">Análise</p>
-      <button class="nav-item" data-view="overview">Visão geral</button>
-      <button class="nav-item" data-view="tree">Árvore de triagem</button>
-      <button class="nav-item" data-view="classify">Classificar incidente</button>
+      <button class="nav-item" type="button" data-view="overview">Visão geral</button>
+      <button class="nav-item" type="button" data-view="tree">Árvore de triagem</button>
+      <button class="nav-item" type="button" data-view="classify">Classificar incidente</button>
 
       <p class="nav-group">Evidência</p>
-      <button class="nav-item" data-view="patterns">Padrões</button>
-      <button class="nav-item" data-view="matrix">Matriz sinal × padrão</button>
-      <button class="nav-item" data-view="incidents">Incidentes</button>
+      <button class="nav-item" type="button" data-view="patterns">Padrões</button>
+      <button class="nav-item" type="button" data-view="matrix">Matriz sinal × padrão</button>
+      <button class="nav-item" type="button" data-view="incidents">Incidentes</button>
 
       <p class="nav-group">Referência</p>
-      <button class="nav-item" data-view="signals">Taxonomia de sinais</button>
-      <button class="nav-item" data-view="report">Relatório</button>
+      <button class="nav-item" type="button" data-view="signals">Taxonomia de sinais</button>
+      <button class="nav-item" type="button" data-view="report">Relatório</button>
     </nav>
 
     <div class="sidebar-foot">
       <span id="who"></span>
-      <button id="logout" class="link-button">Sair</button>
+      <button id="logout" class="link-button" type="button">Sair</button>
     </div>
   </aside>
 
@@ -132,10 +138,11 @@
       <div class="panel-grid">
         <article class="panel">
           <h3>Sinais observados</h3>
+          <p class="panel-sub" id="selected-count">Nenhum sinal marcado.</p>
           <div id="classify-picker" class="picker"></div>
           <div class="panel-actions">
-            <button id="classify-run" class="primary">Classificar</button>
-            <button id="classify-clear" class="link-button">Limpar seleção</button>
+            <button id="classify-run" class="primary" type="button">Classificar</button>
+            <button id="classify-clear" class="link-button" type="button">Limpar seleção</button>
           </div>
         </article>
         <article class="panel">
@@ -184,12 +191,20 @@
         </p>
       </header>
       <article class="panel">
-        <input id="incident-filter" class="filter" placeholder="Filtrar por id, título, serviço ou padrão" />
+        <label class="panel-sub" for="incident-filter">
+          Filtrar por id, título, serviço, severidade ou padrão
+        </label>
+        <input id="incident-filter" class="filter" placeholder="digite para filtrar" />
         <div class="table-wrap"><div id="incidents"></div></div>
       </article>
       <article class="panel" id="incident-detail-panel" hidden>
         <h3 id="incident-detail-title"></h3>
         <div id="incident-detail"></div>
+        <div class="panel-actions">
+          <button id="incident-detail-close" class="link-button" type="button">
+            Fechar detalhe
+          </button>
+        </div>
       </article>
     </section>
 
