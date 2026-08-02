@@ -367,12 +367,31 @@ def test_unknown_post_endpoint(state):
 def test_static_file_serves_the_bundle(path):
     resolved = webapp.static_file(path)
     assert resolved is not None
-    assert resolved.is_file()
+    target, content_type = resolved
+    assert target.is_file()
+    assert content_type.startswith("text/")
 
 
-@pytest.mark.parametrize("path", ["/../pyproject.toml", "/nope.html", "/web"])
-def test_static_file_refuses_anything_else(path):
+@pytest.mark.parametrize(
+    "path",
+    ["/../pyproject.toml", "/nope.html", "/web", "/index.html/", "//app.js", "/APP.JS"],
+)
+def test_static_file_refuses_anything_outside_the_allowlist(path):
     assert webapp.static_file(path) is None
+
+
+def test_static_file_returns_none_when_the_bundle_is_missing(monkeypatch, tmp_path):
+    """Allowlisted name, arquivo ausente: nada a servir, e ninguem explode."""
+    monkeypatch.setattr(webapp, "WEB_ROOT", tmp_path)
+    assert webapp.static_file("/app.js") is None
+
+
+def test_login_signs_the_configured_user_not_the_submitted_string(state):
+    _, payload, session = webapp.handle_post(
+        state, "/api/login", {"user": "demo", "password": "demo"}, None
+    )
+    assert payload["user"] == state.credentials.user
+    assert webapp.read_session(state.secret, session) == state.credentials.user
 
 
 # --- one real round trip ---------------------------------------------------------

@@ -26,7 +26,6 @@ from __future__ import annotations
 import base64
 import hmac
 import json
-import mimetypes
 import os
 import secrets
 import time
@@ -380,10 +379,13 @@ def handle_post(
         given_password = str(body.get("password", ""))
         if not credentials_ok(state.credentials, given_user, given_password):
             return HTTPStatus.UNAUTHORIZED, {"error": "invalid credentials"}, None
+        # A sessao e assinada sobre a credencial configurada, nao sobre a string que
+        # chegou na requisicao. Depois de credentials_ok as duas sao iguais, mas assim
+        # nada vindo da rede alcanca um header Set-Cookie, nem por construcao.
         return (
             HTTPStatus.OK,
-            {"authenticated": True, "user": given_user},
-            make_session(state.secret, given_user),
+            {"authenticated": True, "user": state.credentials.user},
+            make_session(state.secret, state.credentials.user),
         )
 
     if path == "/api/logout":
@@ -400,15 +402,31 @@ def handle_post(
     return HTTPStatus.NOT_FOUND, {"error": "unknown endpoint"}, None
 
 
-def static_file(path: str) -> Path | None:
-    """Map a URL path to a file under `web/`, refusing anything that escapes it."""
-    relative = "index.html" if path in {"", "/"} else path.lstrip("/")
-    candidate = (WEB_ROOT / relative).resolve()
-    if not candidate.is_relative_to(WEB_ROOT.resolve()):
+_HTML = "text/html; charset=utf-8"
+
+# O bundle e um conjunto fixo de tres arquivos, nao um diretorio para servir. Mapear
+# URL -> (nome, content-type) explicitamente elimina a construcao de caminho a partir
+# de entrada de rede: nao ha travessia a barrar porque nao ha caminho a montar. Vale
+# tambem para o content-type, que deixa de vir de inferencia sobre nome de arquivo.
+_STATIC: dict[str, tuple[str, str]] = {
+    "": ("index.html", _HTML),
+    "/": ("index.html", _HTML),
+    "/index.html": ("index.html", _HTML),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+}
+
+
+def static_file(path: str) -> tuple[Path, str] | None:
+    """Resolve uma URL para um arquivo do bundle e seu content-type, ou None."""
+    entry = _STATIC.get(path)
+    if entry is None:
         return None
+    name, content_type = entry
+    candidate = WEB_ROOT / name
     if not candidate.is_file():
         return None
-    return candidate
+    return candidate, content_type
 
 
 # --------------------------------------------------------------------------------------
@@ -479,13 +497,13 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(status, payload)
             return
 
-        target = static_file(path)
-        if target is None:
+        resolved = static_file(path)
+        if resolved is None:
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
 
+        target, content_type = resolved
         body = target.read_bytes()
-        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
