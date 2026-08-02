@@ -1,7 +1,12 @@
 # Imagem do dashboard. Enxuta por consequencia, nao por esforco: o pacote tem zero
 # dependencia de runtime (ADR-0001), entao nao existe resolucao de dependencia aqui.
 # Sem lock file para divergir, sem indice para alcancar, sem cache de wheel.
-FROM python:3.13-slim
+#
+# Digest e nao apenas tag: `3.13-slim` e um ponteiro mutavel, e quem publica a imagem
+# pode reapontar a tag para outro conteudo sem que nada aqui mude. O digest fixa o byte
+# exato que entrou no build. Isso nao congela patch de seguranca porque o Renovate
+# atualiza o digest (docker:pinDigests), do mesmo modo que ja faz com digest de action.
+FROM python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
