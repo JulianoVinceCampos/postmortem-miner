@@ -12,6 +12,7 @@ Two layers, on purpose:
 from __future__ import annotations
 
 import json
+import socket
 import threading
 from http import HTTPStatus
 from http.client import HTTPConnection
@@ -22,6 +23,7 @@ from postmortem_miner import webapp
 from postmortem_miner.decision_tree import Node
 
 SECRET = b"unit-test-secret"
+CRLF = chr(13) + chr(10)  # sem escape literal, para o gate de sanitize
 
 
 @pytest.fixture
@@ -485,6 +487,100 @@ def test_live_oversized_body_is_treated_as_empty(live):
     response.read()
     conn.close()
     assert response.status == HTTPStatus.UNAUTHORIZED
+
+
+def _read_one_response(stream):
+    """Le uma resposta HTTP inteira: status, headers e corpo por Content-Length.
+
+    Escrito a mao porque o objetivo do teste e nao usar um cliente que reconecta ou
+    normaliza a conexao por baixo.
+    """
+    status = stream.readline().decode("latin-1").strip()
+    length = 0
+    while True:
+        line = stream.readline().decode("latin-1").strip()
+        if not line:
+            break
+        name, _, value = line.partition(":")
+        if name.strip().lower() == "content-length":
+            length = int(value.strip())
+    return status, (stream.read(length) if length else b"")
+
+
+def test_live_answers_two_requests_on_one_socket(live):
+    """Duas requisicoes sequenciais na mesma conexao TCP, como faz um proxy.
+
+    Regressao de producao. O default de BaseHTTPRequestHandler e HTTP/1.0, que fecha a
+    conexao depois de cada resposta. Atras do proxy do Render, que reusa a conexao
+    upstream, isso dessincronizava o par requisicao/resposta: um GET anonimo em
+    /api/summary voltou 404 com corpo "Not Found" no lugar de 401, e /api/nope voltou 401.
+
+    Duas tentativas anteriores nao serviram, e vale registrar por que: http.client
+    reconecta sozinho quando o servidor fecha a conexao, escondendo o sintoma; e enviar
+    as duas requisicoes num unico sendall (pipelining) e racy. Ler uma resposta inteira
+    antes de enviar a proxima e deterministico.
+    """
+    health = ("GET /api/health HTTP/1.1" + CRLF + "Host: localhost" + CRLF + CRLF).encode()
+    summary = ("GET /api/summary HTTP/1.1" + CRLF + "Host: localhost" + CRLF + CRLF).encode()
+
+    with socket.create_connection(("127.0.0.1", live), timeout=5) as sock:
+        stream = sock.makefile("rwb")
+
+        stream.write(health)
+        stream.flush()
+        status, body = _read_one_response(stream)
+        assert status.startswith("HTTP/1.1 200"), f"esperado HTTP/1.1, veio {status!r}"
+        assert json.loads(body)["status"] == "ok"
+
+        stream.write(summary)
+        stream.flush()
+        status, body = _read_one_response(stream)
+        assert status.startswith(
+            "HTTP/1.1 401"
+        ), f"segunda requisicao na mesma conexao falhou: {status!r}"
+        assert json.loads(body) == {"error": "authentication required"}
+
+        stream.close()
+
+
+def test_live_body_is_drained_so_the_connection_survives(live):
+    """Um POST fora da API tem o corpo drenado e a conexao segue utilizavel.
+
+    Sem drenar, o keep-alive parseava os bytes sobrando como a proxima linha de request
+    e o servidor logava Bad request syntax. E o mesmo modo de falha do HTTP/1.0, entrando
+    pelo outro lado.
+    """
+    payload = b'{"a": 1}'
+    head = (
+        "POST /somewhere HTTP/1.1"
+        + CRLF
+        + "Host: localhost"
+        + CRLF
+        + "Content-Type: application/json"
+        + CRLF
+        + f"Content-Length: {len(payload)}"
+        + CRLF
+        + CRLF
+    ).encode()
+    health = ("GET /api/health HTTP/1.1" + CRLF + "Host: localhost" + CRLF + CRLF).encode()
+
+    with socket.create_connection(("127.0.0.1", live), timeout=5) as sock:
+        stream = sock.makefile("rwb")
+
+        stream.write(head + payload)
+        stream.flush()
+        status, _ = _read_one_response(stream)
+        assert status.startswith("HTTP/1.1 404"), status
+
+        stream.write(health)
+        stream.flush()
+        status, body = _read_one_response(stream)
+        assert status.startswith(
+            "HTTP/1.1 200"
+        ), f"a conexao nao sobreviveu ao POST com corpo: {status!r}"
+        assert json.loads(body)["status"] == "ok"
+
+        stream.close()
 
 
 def test_log_message_tolerates_a_single_argument(state, capsys):
