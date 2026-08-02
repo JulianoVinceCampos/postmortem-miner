@@ -1,4 +1,4 @@
-// Renovate config em JSON5 para poder carregar comentario — ver ADR e o historico de CI.
+// Renovate config em JSON5 para poder carregar comentario. Ver ADR e o historico de CI.
 {
   extends: [
     "config:recommended",

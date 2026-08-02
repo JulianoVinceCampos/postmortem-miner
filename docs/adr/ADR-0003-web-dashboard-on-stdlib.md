@@ -34,7 +34,7 @@ A camada web usa apenas a biblioteca padrão. Concretamente:
 `dependencies = []` continua verdadeiro no `pyproject.toml`. A instalação não mudou.
 
 A verificação de credencial acontece **no servidor**. As credenciais são um portão de
-demonstração sobre dado sintético e somente leitura, não um controle de segurança — mas
+demonstração sobre dado sintético e somente leitura, não um controle de segurança, mas
 um portão validado em JavaScript não é um portão, e num projeto sobre análise de
 incidente isso seria uma contradição visível.
 
@@ -50,7 +50,7 @@ a cada requisição.
 cliente, sem TLS, sem *graceful shutdown* além do que o `ThreadingHTTPServer` oferece.
 Isso é aceitável porque a superfície é leitura sobre dado sintético e o TLS fica no
 proxy da plataforma de deploy. O roteamento manual também não ganha validação de schema
-de graça, então cada payload de entrada é normalizado à mão — visível em
+de graça, então cada payload de entrada é normalizado à mão, visível em
 `handle_post`, que trata corpo ausente, corpo grande demais e JSON inválido como
 corpo vazio.
 

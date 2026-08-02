@@ -12,7 +12,7 @@ flowchart LR
         corpus[("corpus/<br/>markdown")]
     end
 
-    subgraph nucleo["Núcleo — stdlib, determinístico"]
+    subgraph nucleo["Núcleo: stdlib, determinístico"]
         parser["parser<br/><small>markdown → Incident</small>"]
         signals["signals<br/><small>prosa → tokens + evidência</small>"]
         patterns["patterns<br/><small>Jaccard + union-find</small>"]
@@ -60,7 +60,7 @@ de erro, porque um acervo real tem arquivo torto.
 
 **`parser → signals`.** Cada incidente tem sua prosa varrida por regras de regex que
 emitem `Signal(token, kind, evidence)`. O `evidence` é o que mantém tudo auditável: todo
-token guarda o trecho original que o produziu. Sem embeddings — ADR-0002 explica por quê.
+token guarda o trecho original que o produziu. Sem embeddings: ADR-0002 explica por quê.
 
 **`signals → patterns`.** Incidentes viram conjuntos de tokens. Similaridade é Jaccard,
 agrupamento é single-linkage por union-find. De cada grupo saem os sinais *distintivos*
@@ -90,7 +90,7 @@ de qualquer login existir.
 ## O que a direção das setas garante
 
 O núcleo não conhece as saídas. `parser`, `signals`, `patterns`, `decision_tree` e
-`report` não importam nada de `cli` nem de `webapp` — é o que permite o dashboard existir
+`report` não importam nada de `cli` nem de `webapp`, e é o que permite o dashboard existir
 sem que o caminho da CLI ganhe uma dependência ou um ramo condicional.
 
 Consequência prática: o dashboard não é uma segunda fonte de verdade. A tela de relatório
