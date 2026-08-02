@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries are generated from
 Conventional Commits.
 
+## [0.2.0](https://github.com/JulianoVinceCampos/postmortem-miner/compare/v0.1.0...v0.2.0) (2026-08-02)
+
+
+### Features
+
+* **web:** dashboard, container e deploy, ainda sem dependência de runtime ([#5](https://github.com/JulianoVinceCampos/postmortem-miner/issues/5)) ([125c0ec](https://github.com/JulianoVinceCampos/postmortem-miner/commit/125c0ecaa8169806f844f3e0f5f45a836534c096))
+
+
+### Bug Fixes
+
+* **web:** corrige o login invisivel, troca a credencial e aplica a nova paleta ([#8](https://github.com/JulianoVinceCampos/postmortem-miner/issues/8)) ([810445b](https://github.com/JulianoVinceCampos/postmortem-miner/commit/810445b68740a60da39bbbb987acedfb2a0654b9))
+* **web:** HTTP/1.1 e drenagem de corpo, para não dessincronizar a conexão ([#7](https://github.com/JulianoVinceCampos/postmortem-miner/issues/7)) ([df8f61c](https://github.com/JulianoVinceCampos/postmortem-miner/commit/df8f61c0cc7e2ff29fea8c90bae1dbba6edc6e0f))
+* **web:** implementa HEAD e pede revalidacao nos estaticos ([#9](https://github.com/JulianoVinceCampos/postmortem-miner/issues/9)) ([49a16f7](https://github.com/JulianoVinceCampos/postmortem-miner/commit/49a16f73da508a4578f98f3ab46495e3f023ea1e))
+
+
+### Documentation
+
+* **readme:** link the live demo instance ([#6](https://github.com/JulianoVinceCampos/postmortem-miner/issues/6)) ([23af0c5](https://github.com/JulianoVinceCampos/postmortem-miner/commit/23af0c555c374814e0d95d9ea5a0859d62ad671c))
+* traduz README para PT-BR preservando termos tecnicos ([#3](https://github.com/JulianoVinceCampos/postmortem-miner/issues/3)) ([d959ead](https://github.com/JulianoVinceCampos/postmortem-miner/commit/d959ead8f9287f5db91db50796f48a2e6fc64450))
+
 ## 0.1.0 (2026-07-26)
 
 

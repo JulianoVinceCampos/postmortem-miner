@@ -12,4 +12,4 @@ argue with, not a similarity score you have to trust.
 from postmortem_miner.models import Incident, Pattern, Signal, SignalKind
 
 __all__ = ["Incident", "Pattern", "Signal", "SignalKind", "__version__"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
