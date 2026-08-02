@@ -1,0 +1,51 @@
+name: docker
+
+# O Dockerfile e um artefato entregavel: se nada o constroi, ele apodrece calado.
+# Este job constroi a imagem, sobe o container e exige que o dashboard responda.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build
+        run: docker build -t postmortem-miner:ci .
+
+      - name: Boot and probe
+        run: |
+          docker run -d --name pm -p 8000:8000 postmortem-miner:ci
+          for _ in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8000/api/health; then ok=1; break; fi
+            sleep 1
+          done
+          docker logs pm
+          test "${ok:-0}" = "1"
+
+      - name: The dashboard must be served, not just the API
+        run: curl -fsS http://127.0.0.1:8000/ | grep -q "postmortem-miner"
+
+      - name: A private endpoint must refuse an anonymous caller
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/summary)
+          test "$code" = "401"
+
+      - name: The demo gate must accept the default credentials
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"user":"demo","password":"demo"}' \
+            http://127.0.0.1:8000/api/login)
+          test "$code" = "200"
+
+      - name: Stop
+        if: always()
+        run: docker rm -f pm || true

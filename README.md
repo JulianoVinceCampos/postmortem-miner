@@ -62,6 +62,49 @@ python -m postmortem_miner.cli classify path/to/postmortems \
 
 `postmortem-miner signals` lista todos os tokens que ele consegue reconhecer.
 
+## Dashboard
+
+O markdown responde bem "o que este acervo diz". Responde mal "e este incidente aqui,
+agora?". Para isso existe uma tela:
+
+```bash
+python -m postmortem_miner.cli serve corpus        # http://127.0.0.1:8000
+```
+
+Sete views, na ordem em que a pergunta aparece: visão geral com a distribuição dos
+padrões e das camadas de sinal, a árvore de triagem navegável, **classificar incidente**
+(marque os sinais que está vendo e receba o padrão provável junto do caminho percorrido),
+padrões em detalhe com evidência e status da causa raiz, a matriz sinal × padrão, o
+diretório de incidentes com os sinais extraídos e o trecho que os originou, a taxonomia
+completa, e o relatório — que é literalmente a saída de `mine`, não uma segunda fonte de
+verdade.
+
+Credencial do portão de demonstração: `demo` / `demo`, sobrescrevível por `PM_USER` e
+`PM_PASSWORD`. A verificação acontece no servidor, com cookie assinado por HMAC. É um
+portão de demonstração sobre dado sintético e somente leitura, não um controle de
+segurança — mas um portão validado no navegador não seria portão nenhum.
+
+**Continua sem dependência de runtime.** O servidor é `http.server`, a sessão é `hmac`, o
+frontend não tem framework nem CDN e os gráficos são SVG gerado na hora.
+[ADR-0003](docs/adr/ADR-0003-web-dashboard-on-stdlib.md) revisita o ADR-0001 e explica por
+que FastAPI ficou de fora.
+
+## Container e deploy
+
+```bash
+docker compose up --build      # http://127.0.0.1:8000
+```
+
+A imagem não tem etapa de resolução de dependência, porque não há dependência a resolver.
+Roda como usuário não-root e traz `HEALTHCHECK` batendo em `/api/health`.
+
+Para publicar, o repositório traz um blueprint de Render (`render.yaml`) com auto-deploy no
+push. A porta não está fixada em lugar nenhum: a plataforma injeta `PORT` e o default da
+CLI lê do ambiente.
+
+Monte o seu próprio acervo sobre `/app/corpus` para analisar postmortems de verdade — o
+volume é somente leitura, a ferramenta nunca escreve no corpus.
+
 ## Como a árvore se parece
 
 Gerada a partir do corpus sintético, renderizada direto no relatório:
@@ -188,6 +231,17 @@ make cov       # coverage mais o ratchet
 O pipeline roda dez camadas: pre-commit, sanitize, lint, build e testes em três versões do
 Python, coverage com um ratchet que só sobe, Semgrep, CodeQL como blocking check, dependency
 review com OSV, o quality gate do SonarCloud, e atestação de SBOM mais build provenance.
+
+## Documentação
+
+| Documento | Conteúdo |
+| --- | --- |
+| [componentes.md](docs/componentes.md) | Os componentes, um diagrama, e o que cada aresta garante |
+| [ADR-0001](docs/adr/ADR-0001-zero-runtime-dependencies.md) | Por que zero dependência de runtime |
+| [ADR-0002](docs/adr/ADR-0002-regex-rules-not-embeddings.md) | Por que regras de regex e não embeddings |
+| [ADR-0003](docs/adr/ADR-0003-web-dashboard-on-stdlib.md) | Por que o dashboard também é stdlib |
+| [SECURITY.md](SECURITY.md) | Política de segurança e as camadas de defesa |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Como contribuir e o que o CI exige |
 
 ## Licença
 

@@ -199,6 +199,15 @@ def known_tokens() -> tuple[str, ...]:
     return tuple(token for token, _, _ in _RULES)
 
 
+def kind_of(token: str) -> SignalKind | None:
+    """The layer a token belongs to, or None if the extractor does not know the token.
+
+    Exists so a caller can group tokens by layer without importing `_RULES`. The
+    dashboard reads the taxonomy this way.
+    """
+    return next((kind for name, kind, _ in _RULES if name == token), None)
+
+
 def _evidence(text: str, match: re.Match[str]) -> str:
     """Snippet around the match, trimmed to a readable single line.
 
